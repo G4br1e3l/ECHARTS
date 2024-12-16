@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criador de Gráficos ECharts</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/world.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        header {
+            background-color: #fff;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        .language-switch {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+        }
+        .controls-panel {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .preview-panel {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        #chart-container {
+            width: 100%;
+            height: 500px;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .tooltip-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: #1a73e8;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            margin-left: 5px;
+            cursor: help;
+        }
+        .tooltip-text {
+            display: none;
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            max-width: 300px;
+            z-index: 1000;
+            top: calc(100% + 5px);
+            left: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        .tooltip-icon:hover + .tooltip-text {
+            display: block;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        .data-grid {
+            margin-top: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 1rem;
+        }
+        .data-row {
+            display: grid;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .remove-row {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+        }
+        .add-row {
+            background: #28a745;
+            margin-top: 0.5rem;
+        }
+        .code-preview {
+            margin-top: 1rem;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .export-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .chart-specific-options {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 0.5rem;
+            }
+            .controls-panel, .preview-panel {
+                margin-bottom: 1rem;
+            }
+            #chart-container {
+                height: 300px;
+            }
+            .tooltip-text {
+                max-width: 200px;
+            }
+            .data-row {
+                font-size: 0.9rem;
+            }
+        }
+        .controls-panel, .preview-panel {
+            transition: all 0.3s ease;
+        }
+        .controls-panel:hover, .preview-panel:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-type-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .chart-type-tab {
+            flex: 1;
+            min-width: 100px;
+            padding: 0.75rem;
+            text-align: center;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .chart-type-tab:hover {
+            background: #e9ecef;
+        }
+        .chart-type-tab.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1557b0;
+        }
+        .advanced-options {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .advanced-options-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.5rem;
+            background: #f0f2f5;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .advanced-options-content {
+            display: none;
+        }
+        .advanced-options-content.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .preview-controls {
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; 
+            transition: .4s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px; width: 26px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+        input:checked + .slider {
+            background-color: #1a73e8;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+        .toggle-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .error-message {
+            color: #dc3545;
+            padding: 1rem;
+            margin: 1rem 0;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .chart-specific-adv-options {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .chart-specific-adv-options .form-group {
+            margin-bottom: 1rem;
+        }
+        .chart-specific-adv-options label {
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo" data-translate="title">Criador de Gráficos ECharts</div>
+        <select class="language-switch" onchange="changeLanguage(this.value)">
+            <option value="pt-BR">Português (BR)</option>
+            <option value="en">English</option>
+        </select>
+    </header>
+    <div class="container">
+        <div class="controls-panel animate__animated animate__fadeIn">
+            <div class="chart-type-tabs">
+                <div class="chart-type-tab active" data-type="basic">Básicos</div>
+                <div class="chart-type-tab" data-type="statistical">Estatísticos</div>
+                <div class="chart-type-tab" data-type="special">Especiais</div>
+                <div class="chart-type-tab" data-type="advanced">Avançados</div>
+                <div class="chart-type-tab" data-type="extensions">Extensões</div>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <span data-translate="chartType">Tipo de Gráfico</span>
+                    <span class="tooltip-icon">?</span>
+                </label>
+                <div class="tooltip-text" data-translate="chartTypeTooltip">Escolha o tipo de gráfico que melhor representa seus dados</div>
+                <select id="chartType" onchange="updateChartType()">
+                    <optgroup label="Gráficos Básicos">
+                        <option value="line">Linha</option>
+                        <option value="bar">Barras</option>
+                        <option value="pie">Pizza</option>
+                        <option value="scatter">Dispersão</option>
+                        <option value="gauge">Medidor</option>
+                    </optgroup>
+                    <optgroup label="Gráficos Estatísticos" style="display:none;">
+                        <option value="boxplot">Boxplot</option>
+                        <option value="candlestick">Candlestick</option>
+                        <option value="heatmap">Mapa de Calor</option>
+                        <option value="radar">Radar</option>
+                    </optgroup>
+                    <optgroup label="Gráficos Especiais" style="display:none;">
+                        <option value="sunburst">Sunburst</option>
+                        <option value="treemap">Treemap</option>
+                        <option value="sankey">Sankey</option>
+                        <option value="funnel">Funil</option>
+                    </optgroup>
+                    <optgroup label="Gráficos Avançados" style="display:none;">
+                        <option value="parallel">Paralelo</option>
+                        <option value="graph">Grafo</option>
+                        <option value="polarBar">Barras Polares</option>
+                    </optgroup>
+                    <optgroup label="Gráficos Extensões" style="display:none;">
+                        <option value="effectScatter">EffectScatter</option>
+                        <option value="tree">Tree</option>
+                        <option value="lines">Lines</option>
+                        <option value="themeRiver">ThemeRiver</option>
+                        <option value="pictorialBar">PictorialBar</option>
+                        <option value="calendar">Calendar</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <span data-translate="chartTitle">Título do Gráfico</span>
+                    <span class="tooltip-icon">?</span>
+                </label>
+                <div class="tooltip-text" data-translate="chartTitleTooltip">Digite um título descritivo para seu gráfico</div>
+                <input type="text" id="chartTitle" value="Meu Gráfico" onchange="updateChart()" oninput="updateChart()">
+            </div>
+
+            <div id="axisControls" class="form-group">
+                <label>
+                    <span data-translate="xAxisLabel">Rótulo do Eixo X</span>
+                    <span class="tooltip-icon">?</span>
+                </label>
+                <div class="tooltip-text" data-translate="xAxisTooltip">Nome para o eixo horizontal do gráfico</div>
+                <input type="text" id="xAxisName" value="Eixo X" onchange="updateChart()" oninput="updateChart()">
+                
+                <label>
+                    <span data-translate="yAxisLabel">Rótulo do Eixo Y</span>
+                    <span class="tooltip-icon">?</span>
+                </label>
+                <div class="tooltip-text" data-translate="yAxisTooltip">Nome para o eixo vertical do gráfico</div>
+                <input type="text" id="yAxisName" value="Eixo Y" onchange="updateChart()" oninput="updateChart()">
+            </div>
+
+            <div class="form-group">
+                <div class="advanced-options">
+                    <div class="advanced-options-toggle">
+                        <span>Opções Avançadas</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="advanced-options-content">
+                        <div class="form-group">
+                            <label>
+                                <span>Animação</span>
+                                <span class="tooltip-icon">?</span>
+                            </label>
+                            <div class="tooltip-text">Configure as animações do gráfico</div>
+                            <select id="animationType" onchange="updateChart()">
+                                <option value="auto">Automática</option>
+                                <option value="expansion">Expansão</option>
+                                <option value="scale">Escala</option>
+                                <option value="none">Sem Animação</option>
+                            </select>
+                            <input type="number" id="animationDuration" value="1000" min="0" max="5000" step="100" onchange="updateChart()" oninput="updateChart()" placeholder="Duração (ms)">
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <span>Tema</span>
+                                <span class="tooltip-icon">?</span>
+                            </label>
+                            <div class="tooltip-text">Escolha o tema do gráfico</div>
+                            <select id="theme" onchange="updateChart()">
+                                <option value="default">Padrão</option>
+                                <option value="dark">Escuro</option>
+                                <option value="light">Claro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <span>Estilo da Série</span>
+                                <span class="tooltip-icon">?</span>
+                            </label>
+                            <div class="tooltip-text">Configure o estilo visual da série de dados principal</div>
+                            <input type="color" id="seriesColor" value="#1a73e8" onchange="updateChart()" oninput="updateChart()">
+                            <select id="symbolType" onchange="updateChart()">
+                                <option value="circle">Círculo</option>
+                                <option value="rect">Quadrado</option>
+                                <option value="triangle">Triângulo</option>
+                                <option value="diamond">Diamante</option>
+                            </select>
+                        </div>
+
+                        <div class="chart-specific-adv-options" id="chartSpecificOptionsContainer">
+                            <!-- Opções avançadas específicas do tipo de gráfico serão inseridas aqui -->
+                        </div>
+                        
+                        <button class="btn btn-primary" type="button" onclick="updateChart()">Atualizar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <span data-translate="dataPoints">Pontos de Dados</span>
+                    <span class="tooltip-icon">?</span>
+                </label>
+                <div class="tooltip-text" data-translate="dataPointsTooltip">Adicione os valores para seu gráfico</div>
+                <div id="dataGrid" class="data-grid"></div>
+                <button onclick="addDataRow()" type="button" class="add-row" data-translate="addDataPoint">Adicionar Ponto de Dados</button>
+            </div>
+
+            <div class="export-buttons">
+                <button class="btn btn-primary" type="button" onclick="copyCode()">
+                    Copiar Código
+                </button>
+                <button class="btn btn-primary" type="button" onclick="exportForGrafana()">
+                    Exportar para Grafana
+                </button>
+            </div>
+        </div>
+
+        <div class="preview-panel animate__animated animate__fadeIn">
+            <div class="preview-controls">
+                <div class="toggle-switch">
+                    <label class="switch">
+                        <input type="checkbox" id="previewToggle" onchange="togglePreviewMode()">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="toggle-label">Visualizar Código</span>
+                </div>
+            </div>
+            <div class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Atualizando gráfico...</div>
+            </div>
+            <div id="chart-container"></div>
+            <div id="codePreview" class="code-preview" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+        let currentChartType = 'line';
+        let currentLanguage = 'pt-BR';
+
+        let radarFillArea = false;
+        let gaugeShowName = true;
+        let heatmapMinColor = '#313695';
+        let heatmapMaxColor = '#a50026';
+
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[lang][key]) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                        element.value = translations[lang][key];
+                    } else {
+                        element.textContent = translations[lang][key];
+                    }
+                }
+            });
+            updateChartType(); 
+        }
+
+        function getTranslation(key) {
+            return translations[currentLanguage][key] || key;
+        }
+
+        const translations = {
+            'pt-BR': {
+                title: 'Criador de Gráficos ECharts',
+                chartType: 'Tipo de Gráfico',
+                chartTypeTooltip: 'Escolha o tipo de gráfico que melhor representa seus dados',
+                chartTitle: 'Título do Gráfico',
+                chartTitleTooltip: 'Digite um título descritivo para seu gráfico',
+                xAxisLabel: 'Rótulo do Eixo X',
+                xAxisTooltip: 'Nome para o eixo horizontal do gráfico',
+                yAxisLabel: 'Rótulo do Eixo Y',
+                yAxisTooltip: 'Nome para o eixo vertical do gráfico',
+                dataPoints: 'Pontos de Dados',
+                dataPointsTooltip: 'Adicione os valores para seu gráfico',
+                addDataPoint: 'Adicionar Ponto de Dados',
+                copyCode: 'Copiar Código',
+                exportGrafana: 'Exportar para Grafana',
+                label: 'Rótulo',
+                value: 'Valor',
+                color: 'Cor',
+                min: 'Mínimo',
+                max: 'Máximo',
+                percentage: 'Porcentagem',
+                category: 'Categoria'
+            },
+            'en': {
+                title: 'ECharts Creator',
+                chartType: 'Chart Type',
+                chartTypeTooltip: 'Choose the chart type that best represents your data',
+                chartTitle: 'Chart Title',
+                chartTitleTooltip: 'Enter a descriptive title for your chart',
+                xAxisLabel: 'X-Axis Label',
+                xAxisTooltip: 'Name for the horizontal axis',
+                yAxisLabel: 'Y-Axis Label',
+                yAxisTooltip: 'Name for the vertical axis',
+                dataPoints: 'Data Points',
+                dataPointsTooltip: 'Add values for your chart',
+                addDataPoint: 'Add Data Point',
+                copyCode: 'Copy Code',
+                exportGrafana: 'Export for Grafana',
+                label: 'Label',
+                value: 'Value',
+                color: 'Color',
+                min: 'Minimum',
+                max: 'Maximum',
+                percentage: 'Percentage',
+                category: 'Category'
+            }
+        };
+
+        function initChart() {
+            const chartContainer = document.getElementById('chart-container');
+            if (!chartContainer) return false;
+
+            if (chart) {
+                chart.dispose();
+            }
+            chart = echarts.init(chartContainer, null, {
+                renderer: 'canvas',
+                useDirtyRect: true,
+                locale: currentLanguage,
+                devicePixelRatio: window.devicePixelRatio
+            });
+
+            chart.on('rendered', () => {
+                hideLoading();
+            });
+
+            chart.on('error', (error) => {
+                console.error('Chart error:', error);
+                hideLoading();
+                showChartError(error, chartContainer);
+            });
+
+            currentChartType = 'line';
+            updateChartType();
+            return true;
+        }
+
+        window.addEventListener('load', () => {
+            initChart();
+
+            document.querySelectorAll('.chart-type-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.chart-type-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    updateChartTypeOptions(this.dataset.type);
+                });
+            });
+
+            const advancedOptionsToggle = document.querySelector('.advanced-options-toggle');
+            if (advancedOptionsToggle) {
+                advancedOptionsToggle.addEventListener('click', toggleAdvancedOptions);
+            }
+
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                if (resizeTimeout) clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (chart) {
+                        chart.resize();
+                    }
+                }, 250);
+            });
+        });
+
+        function showLoading(message = 'Atualizando gráfico...') {
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                const loadingText = loadingOverlay.querySelector('.loading-text');
+                if (loadingText) {
+                    loadingText.textContent = message;
+                }
+                loadingOverlay.style.display = 'flex';
+            }
+        }
+
+        function hideLoading() {
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        function toggleAdvancedOptions() {
+            const content = document.querySelector('.advanced-options-content');
+            const icon = document.querySelector('.toggle-icon');
+            if (content && icon) {
+                content.classList.toggle('show');
+                icon.textContent = content.classList.contains('show') ? '▼' : '▲';
+            }
+        }
+
+        function togglePreviewMode() {
+            const chartContainer = document.getElementById('chart-container');
+            const codePreview = document.getElementById('codePreview');
+            const toggle = document.getElementById('previewToggle');
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            if (!chartContainer || !codePreview || !toggle || !toggleLabel) return;
+            
+            if (toggle.checked) {
+                chartContainer.style.display = 'none';
+                codePreview.style.display = 'block';
+                toggleLabel.textContent = currentLanguage === 'pt-BR' ? 'Visualizar Gráfico' : 'View Chart';
+            } else {
+                chartContainer.style.display = 'block';
+                codePreview.style.display = 'none';
+                toggleLabel.textContent = currentLanguage === 'pt-BR' ? 'Visualizar Código' : 'View Code';
+            }
+        }
+
+        function updateChartTypeOptions(type) {
+            const select = document.getElementById('chartType');
+            select.querySelectorAll('optgroup').forEach(group => group.style.display = 'none');
+            
+            switch(type) {
+                case 'basic':
+                    select.querySelector('optgroup[label="Gráficos Básicos"]').style.display = '';
+                    if (!['line','bar','pie','scatter','gauge'].includes(select.value)) {
+                        select.value = 'line';
+                    }
+                    break;
+                case 'statistical':
+                    select.querySelector('optgroup[label="Gráficos Estatísticos"]').style.display = '';
+                    if (!['boxplot','candlestick','heatmap','radar'].includes(select.value)) {
+                        select.value = 'boxplot';
+                    }
+                    break;
+                case 'special':
+                    select.querySelector('optgroup[label="Gráficos Especiais"]').style.display = '';
+                    if (!['sunburst','treemap','sankey','funnel'].includes(select.value)) {
+                        select.value = 'sunburst';
+                    }
+                    break;
+                case 'advanced':
+                    select.querySelector('optgroup[label="Gráficos Avançados"]').style.display = '';
+                    if (!['parallel','graph','polarBar'].includes(select.value)) {
+                        select.value = 'parallel';
+                    }
+                    break;
+                case 'extensions':
+                    select.querySelector('optgroup[label="Gráficos Extensões"]').style.display = '';
+                    if (!['effectScatter','tree','lines','themeRiver','pictorialBar','calendar'].includes(select.value)) {
+                        select.value = 'effectScatter';
+                    }
+                    break;
+            }
+            updateChartType();
+        }
+
+        function updateChartType() {
+            showLoading();
+            const chartTypeSelect = document.getElementById('chartType');
+            const dataGrid = document.getElementById('dataGrid');
+            const axisControls = document.getElementById('axisControls');
+            
+            currentChartType = chartTypeSelect.value;
+
+            while (dataGrid.firstChild) {
+                dataGrid.removeChild(dataGrid.firstChild);
+            }
+            
+            const noAxisCharts = ['pie','gauge','radar','sunburst','treemap','sankey','funnel','graph','parallel','polarBar','effectScatter','tree','lines','themeRiver','pictorialBar','calendar'];
+            if (axisControls) {
+                axisControls.style.display = noAxisCharts.includes(currentChartType) ? 'none' : 'block';
+            }
+
+            updateChartSpecificAdvOptions();
+            addDefaultDataRows();
+            updateChart();
+        }
+
+        function updateChartSpecificAdvOptions() {
+            const container = document.getElementById('chartSpecificOptionsContainer');
+            container.innerHTML = '';
+
+            switch(currentChartType) {
+                case 'radar':
+                    container.innerHTML += `
+                        <div class="form-group">
+                            <label><input type="checkbox" id="radarFillArea" ${radarFillArea?'checked':''} onchange="radarFillArea=this.checked;updateChart()"> Preencher área do Radar</label>
+                        </div>
+                    `;
+                    break;
+                case 'gauge':
+                    container.innerHTML += `
+                        <div class="form-group">
+                            <label><input type="checkbox" id="gaugeShowName" ${gaugeShowName?'checked':''} onchange="gaugeShowName=this.checked;updateChart()"> Mostrar nome do indicador</label>
+                        </div>
+                    `;
+                    break;
+                case 'heatmap':
+                    container.innerHTML += `
+                        <div class="form-group">
+                            <label>Cor Mínima do Heatmap:
+                                <input type="color" id="heatmapMinColor" value="${heatmapMinColor}" onchange="heatmapMinColor=this.value;updateChart()">
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Cor Máxima do Heatmap:
+                                <input type="color" id="heatmapMaxColor" value="${heatmapMaxColor}" onchange="heatmapMaxColor=this.value;updateChart()">
+                            </label>
+                        </div>
+                    `;
+                    break;
+                default:
+                    // sem opções específicas
+                    break;
+            }
+        }
+
+        function addDataRow(...args) {
+            const dataGrid = document.getElementById('dataGrid');
+            const row = document.createElement('div');
+            row.className = `data-row`;
+            let rowHtml = '';
+
+            switch (currentChartType) {
+                case 'pie': {
+                    const [label='',value='',color='#1a73e8'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" min="0" oninput="updateChart()">
+                        <input type="color" value="${color}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'gauge': {
+                    const [label='Valor',value='75'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" min="0" max="100" step="1" oninput="updateChart()">
+                    `;
+                } break;
+                case 'scatter': {
+                    const [label='Ponto 1',x='45'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="Valor" value="${x}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'boxplot': {
+                    const [label='Grupo A',values='10,20,30,40,50'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="min,q1,median,q3,max" value="${values}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'candlestick': {
+                    const [label='Segunda',values='20,25,15,30'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="open,close,low,high" value="${values}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'heatmap': {
+                    const [label='A1',values='0,0,10'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="x,y,valor" value="${values}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'radar': {
+                    const [label='Vendas',value='80'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'sunburst': {
+                    const [label='Empresa/Vendas/Nacional',value='600'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="Hierarquia (A/B/C)" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'treemap': {
+                    const [label='Vendas',value='1000'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'sankey': {
+                    const [label='Leads/Prospectos',value='1000'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="Fonte/Alvo (A/B)" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'funnel': {
+                    const [label='Leads',value='1000'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'graph': {
+                    const [label='NóA/NóB',value='1'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="Fonte/Alvo (A/B)" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'parallel': {
+                    const [label='Ponto 1',values='10,20,30'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="v1,v2,v3" value="${values}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'polarBar': {
+                    const [label='Categoria A',value='120'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'effectScatter': {
+                    const [label='Brasil',val='80',coord='-47.9,-15.8'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="Nome" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="Long,Lat" value="${coord}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${val}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'tree': {
+                    // Formato: Raiz e estrutura (A,A1;A2|B,B1;B2)
+                    const [label='Root',values='A,A1;A2|B,B1;B2'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="Raiz" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="Estrutura (A,A1;A2|B,B1;B2)" value="${values}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'lines': {
+                    const [label='Série 1',vals='10,20,30,40'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="Valores (ex: 10,20,30)" value="${vals}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'themeRiver': {
+                    // label = categoria, dates = 'data,valor;data,valor'
+                    const [label='A',dates='2015/11/08,10;2015/11/09,15'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="Categoria (A,B,C...)" value="${label}" oninput="updateChart()">
+                        <input type="text" placeholder="Datas e valores (data,valor;data,valor)" value="${dates}" oninput="updateChart()">
+                    `;
+                } break;
+                case 'pictorialBar': {
+                    const [lab='Jan',val='10'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${lab}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${val}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                case 'calendar': {
+                    // Calendar data: 'YYYY-MM-DD', value
+                    const [date='2016-01-01',val='20'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="YYYY-MM-DD" value="${date}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${val}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+                default: {
+                    const [label='Janeiro',value='120'] = args;
+                    rowHtml = `
+                        <input type="text" placeholder="${getTranslation('label')}" value="${label}" oninput="updateChart()">
+                        <input type="number" placeholder="${getTranslation('value')}" value="${value}" step="any" oninput="updateChart()">
+                    `;
+                } break;
+            }
+
+            if (currentChartType !== 'calendar') {
+                rowHtml += `<button class="remove-row" onclick="removeDataRow(this)">×</button>`;
+            } else {
+                rowHtml += `<button class="remove-row" onclick="removeDataRow(this)">×</button>`;
+            }
+            
+            row.innerHTML = rowHtml;
+            dataGrid.appendChild(row);
+            updateChart();
+        }
+
+        function removeDataRow(button) {
+            const row = button.closest('.data-row');
+            if (row && row.parentElement) {
+                row.parentElement.removeChild(row);
+                updateChart();
+            }
+        }
+
+        function addDefaultDataRows() {
+            const defaultData = {
+                'line': [
+                    ['Janeiro', '120'],
+                    ['Fevereiro', '150'],
+                    ['Março', '180']
+                ],
+                'bar': [
+                    ['Janeiro', '120'],
+                    ['Fevereiro', '150'],
+                    ['Março', '180']
+                ],
+                'pie': [
+                    ['Categoria A', '30', '#1a73e8'],
+                    ['Categoria B', '25', '#dc3545'],
+                    ['Categoria C', '45', '#28a745']
+                ],
+                'gauge': [['Valor', '75']],
+                'scatter': [
+                    ['Ponto 1', '45'],
+                    ['Ponto 2', '32'],
+                    ['Ponto 3', '78']
+                ],
+                'boxplot': [
+                    ['Grupo A', '10,20,30,40,50'],
+                    ['Grupo B', '15,25,35,45,55']
+                ],
+                'candlestick': [
+                    ['Segunda', '20,25,15,30'],
+                    ['Terça', '25,30,20,35'],
+                    ['Quarta', '30,35,25,40']
+                ],
+                'heatmap': [
+                    ['A1', '0,0,10'],
+                    ['A2', '1,0,20'],
+                    ['A3', '2,0,30']
+                ],
+                'radar': [
+                    ['Vendas', '80'],
+                    ['Marketing', '70'],
+                    ['Desenvolvimento', '90']
+                ],
+                'treemap': [
+                    ['Vendas', '1000'],
+                    ['Marketing', '800']
+                ],
+                'sunburst': [
+                    ['Empresa/Vendas/Nacional', '600'],
+                    ['Empresa/Vendas/Internacional', '400'],
+                    ['Empresa/Marketing/Digital', '500'],
+                    ['Empresa/Marketing/Tradicional', '300']
+                ],
+                'sankey': [
+                    ['Leads/Prospectos', '1000'],
+                    ['Prospectos/Oportunidades', '800'],
+                    ['Oportunidades/Clientes', '500']
+                ],
+                'funnel': [
+                    ['Leads', '1000'],
+                    ['Prospectos', '800'],
+                    ['Oportunidades', '600'],
+                    ['Negociação', '400'],
+                    ['Fechamento', '200']
+                ],
+                'graph': [
+                    ['NóA/NóB', '10'],
+                    ['NóB/NóC', '15'],
+                    ['NóC/NóD', '5']
+                ],
+                'parallel': [
+                    ['Ponto 1', '10,20,30'],
+                    ['Ponto 2', '15,25,35'],
+                    ['Ponto 3', '20,30,40']
+                ],
+                'polarBar': [
+                    ['Categoria A', '120'],
+                    ['Categoria B', '180'],
+                    ['Categoria C', '100']
+                ],
+                'effectScatter': [
+                    ['Brasil', '80', '-47.9,-15.8'],
+                    ['França', '50', '2.35,48.8']
+                ],
+                'tree': [
+                    ['Root', 'A,A1;A2|B,B1;B2']
+                ],
+                'lines': [
+                    ['Série 1', '10,20,30,40'],
+                    ['Série 2', '40,30,20,10']
+                ],
+                'themeRiver': [
+                    ['A', '2015/11/08,10;2015/11/09,15'],
+                    ['B', '2015/11/10,20;2015/11/11,10'],
+                    ['C', '2015/11/12,25;2015/11/13,20']
+                ],
+                'pictorialBar': [
+                    ['Jan', '10'],
+                    ['Feb', '20'],
+                    ['Mar', '30']
+                ],
+                'calendar': [
+                    ['2016-01-01','20'],
+                    ['2016-01-02','25'],
+                    ['2016-01-03','15']
+                ]
+            };
+
+            const data = defaultData[currentChartType] || defaultData['line'];
+            data.forEach(rowData => {
+                addDataRow(...rowData);
+            });
+        }
+
+        function getChartData() {
+            const rows = document.querySelectorAll('.data-row');
+            if (!rows) return [];
+
+            return Array.from(rows).map(row => {
+                const inputs = row.querySelectorAll('input[type="text"],input[type="number"],input[type="color"]');
+                switch (currentChartType) {
+                    case 'pie': {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        const color = inputs[2].value;
+                        if (isNaN(val)) return null;
+                        return {
+                            name: label,
+                            value: val,
+                            itemStyle: {
+                                color: color,
+                                borderRadius: 5,
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            }
+                        };
+                    }
+                    case 'gauge': {
+                        const label = inputs[0].value.trim()||'Valor';
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                    case 'scatter': {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                    case 'boxplot': {
+                        const label = inputs[0].value.trim();
+                        const vals = inputs[1].value.split(',').map(v=>parseFloat(v.trim()));
+                        if (vals.length !== 5 || vals.some(isNaN)) return null;
+                        return { name: label, value: vals };
+                    }
+                    case 'candlestick': {
+                        const label = inputs[0].value.trim();
+                        const vals = inputs[1].value.split(',').map(v=>parseFloat(v.trim()));
+                        if (vals.length !== 4 || vals.some(isNaN)) return null;
+                        return { name: label, value: vals };
+                    }
+                    case 'heatmap': {
+                        const label = inputs[0].value.trim();
+                        const vals = inputs[1].value.split(',').map(v=>parseFloat(v.trim()));
+                        if (vals.length !== 3 || vals.some(isNaN)) return null;
+                        return { name: label, value: vals };
+                    }
+                    case 'radar': {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                    case 'sunburst':
+                    case 'treemap': {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                    case 'sankey':
+                    case 'graph': {
+                        const path = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val) || !path.includes('/')) return null;
+                        return { name: path, value: val };
+                    }
+                    case 'funnel': {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                    case 'parallel': {
+                        const label = inputs[0].value.trim();
+                        const vals = inputs[1].value.split(',').map(v=>parseFloat(v.trim()));
+                        if (vals.some(isNaN)) return null;
+                        return { name: label, value: vals };
+                    }
+                    case 'polarBar': {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                    case 'effectScatter': {
+                        const label = inputs[0].value.trim();
+                        const coords = inputs[1].value.split(',').map(v=>parseFloat(v.trim()));
+                        const val = parseFloat(inputs[2].value);
+                        if (coords.length!==2 || coords.some(isNaN) || isNaN(val)) return null;
+                        return { name: label, value: [...coords, val] };
+                    }
+                    case 'tree': {
+                        const label = inputs[0].value.trim();
+                        const struct = inputs[1].value.trim();
+                        if(!struct) return null;
+                        const branches = struct.split('|').map(b=>b.trim());
+                        const children = branches.map(b=>{
+                            const parts = b.split(',');
+                            if(parts.length<2) return null;
+                            const parent = parts[0].trim();
+                            const kids = parts[1].split(';').map(k=>({name:k.trim()}));
+                            return {name:parent,children:kids};
+                        }).filter(x=>x!==null);
+                        return { name: label, children };
+                    }
+                    case 'lines': {
+                        const label = inputs[0].value.trim();
+                        const vals = inputs[1].value.split(',').map(v=>parseFloat(v.trim()));
+                        if (vals.some(isNaN)) return null;
+                        return { name: label, value: vals };
+                    }
+                    case 'themeRiver': {
+                        const label = inputs[0].value.trim();
+                        const pairs = inputs[1].value.split(';').map(p=>p.trim());
+                        let arr = [];
+                        for (let p of pairs) {
+                            const [d,v] = p.split(',').map(x=>x.trim());
+                            const val = parseFloat(v);
+                            if (isNaN(val)) return null;
+                            arr.push([d,label,val]);
+                        }
+                        return { name: label, value: arr };
+                    }
+                    case 'pictorialBar': {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                    case 'calendar': {
+                        const date = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: date, value: val };
+                    }
+                    default: {
+                        const label = inputs[0].value.trim();
+                        const val = parseFloat(inputs[1].value);
+                        if (isNaN(val)) return null;
+                        return { name: label, value: val };
+                    }
+                }
+            }).filter(d => d !== null);
+        }
+
+        function updateChart() {
+            if (!chart) return;
+            showLoading();
+            
+            const title = document.getElementById('chartTitle').value;
+            const xAxisName = document.getElementById('xAxisName')?.value || '';
+            const yAxisName = document.getElementById('yAxisName')?.value || '';
+            const data = getChartData();
+
+            const theme = document.getElementById('theme')?.value || 'default';
+            const animationType = document.getElementById('animationType')?.value || 'auto';
+            const animationDuration = parseInt(document.getElementById('animationDuration')?.value || '1000');
+            const seriesColor = document.getElementById('seriesColor')?.value || '#1a73e8';
+            const symbolType = document.getElementById('symbolType')?.value || 'circle';
+
+            const option = createChartOption(title, data, {
+                animationType,
+                animationDuration,
+                seriesColor,
+                symbolType,
+                theme,
+                xAxisName,
+                yAxisName
+            });
+
+            chart.clear();
+            chart.setOption(option, true);
+            updateCodePreview(option);
+            hideLoading();
+        }
+
+        function buildSunburstData(data) {
+            const root = {};
+            data.forEach(d=>{
+                const parts = d.name.split('/');
+                let curr = root;
+                for (let i=0; i<parts.length; i++){
+                    const part = parts[i];
+                    curr.children = curr.children || [];
+                    let node = curr.children.find(c=>c.name===part);
+                    if (!node) {
+                        node = {name: part};
+                        curr.children.push(node);
+                    }
+                    if (i===parts.length-1) {
+                        node.value = d.value;
+                    }
+                    curr = node;
+                }
+            });
+            return root.children || [];
+        }
+
+        function buildSankeyData(data) {
+            const nodesMap = new Map();
+            const links = [];
+            let index = 0;
+
+            data.forEach(d=>{
+                const [source,target] = d.name.split('/');
+                if (!nodesMap.has(source)) {
+                    nodesMap.set(source,index++);
+                }
+                if (!nodesMap.has(target)) {
+                    nodesMap.set(target,index++);
+                }
+                links.push({
+                    source: source,
+                    target: target,
+                    value: d.value
+                });
+            });
+
+            const nodes = Array.from(nodesMap.keys()).map(name=>({name}));
+            return { nodes, links };
+        }
+
+        function buildGraphData(data) {
+            const nodesMap = new Map();
+            const links = [];
+            data.forEach(d=>{
+                const [source,target] = d.name.split('/');
+                if (!nodesMap.has(source)){
+                    nodesMap.set(source,{name:source});
+                }
+                if (!nodesMap.has(target)){
+                    nodesMap.set(target,{name:target});
+                }
+                links.push({source:source,target:target,value:d.value});
+            });
+            const nodes = Array.from(nodesMap.values());
+            return {nodes,links};
+        }
+
+        function createChartOption(title, data, config) {
+            const {
+                animationType,
+                animationDuration,
+                seriesColor,
+                symbolType,
+                theme,
+                xAxisName,
+                yAxisName
+            } = config;
+
+            const isDarkTheme = theme === 'dark';
+            const themeColors = {
+                text: isDarkTheme ? '#fff' : '#333',
+                background: isDarkTheme ? '#333' : '#fff',
+                axisLine: isDarkTheme ? '#555' : '#ccc',
+                splitLine: isDarkTheme ? '#484848' : '#eee',
+                tooltip: {
+                    background: isDarkTheme ? 'rgba(50,50,50,0.9)' : 'rgba(255,255,255,0.9)',
+                    text: isDarkTheme ? '#fff' : '#333'
+                }
+            };
+
+            const option = {
+                backgroundColor: themeColors.background,
+                title: {
+                    text: title || 'Chart',
+                    textStyle: {
+                        color: themeColors.text
+                    }
+                },
+                tooltip: {
+                    trigger: ['pie','gauge','radar','sunburst','treemap','sankey','funnel','graph','parallel','polarBar','effectScatter','tree','lines','themeRiver','pictorialBar','calendar'].includes(currentChartType) ? 'item' : 'axis',
+                    formatter: currentChartType === 'pie' ? '{b}: {c} ({d}%)' : undefined,
+                    backgroundColor: themeColors.tooltip.background,
+                    textStyle: {
+                        color: themeColors.tooltip.text
+                    }
+                },
+                animation: animationType !== 'none',
+                animationDuration: animationDuration,
+                textStyle: {
+                    color: themeColors.text
+                }
+            };
+
+            if (!['pie','gauge','radar','sunburst','treemap','sankey','funnel','graph','parallel','polarBar','effectScatter','tree','lines','themeRiver','pictorialBar','calendar'].includes(currentChartType)) {
+                option.xAxis = {
+                    type: 'category',
+                    name: xAxisName,
+                    data: data.map(item => item.name),
+                    axisLabel: {
+                        rotate: data.length > 5 ? 45 : 0,
+                        color: themeColors.text
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: themeColors.axisLine
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: themeColors.splitLine
+                        }
+                    }
+                };
+                option.yAxis = {
+                    type: 'value',
+                    name: yAxisName,
+                    axisLabel: {
+                        color: themeColors.text
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: themeColors.axisLine
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: themeColors.splitLine
+                        }
+                    }
+                };
+            }
+
+            const extra = createChartSeries(data, {
+                seriesColor,
+                symbolType,
+                theme,
+                themeColors
+            });
+
+            for (let k in extra) {
+                option[k] = extra[k];
+            }
+
+            return option;
+        }
+
+        function createChartSeries(data, config) {
+            const { seriesColor, symbolType, theme, themeColors } = config;
+
+            if (currentChartType === 'calendar') {
+                // Calendar chart with user data
+                // data format: [{name:'YYYY-MM-DD', value:10},...]
+                return {
+                    toolbox:{ feature:{ saveAsImage:{} } },
+                    visualMap:{
+                        min:Math.min(...data.map(d=>d.value))||0, 
+                        max:Math.max(...data.map(d=>d.value))||100,
+                        orient:'horizontal', 
+                        left:'center', 
+                        bottom:20,
+                        inRange:{ color:['#e0ffff','#006edd'] },
+                        textStyle:{color:themeColors.text}
+                    },
+                    calendar:{
+                        range:'2016',
+                        cellSize:['auto',20],
+                        splitLine:{show:true,lineStyle:{color:'#999',width:1,type:'solid'}},
+                        dayLabel:{ color:themeColors.text },
+                        monthLabel:{ color:themeColors.text },
+                        yearLabel:{ color:themeColors.text }
+                    },
+                    series:[{
+                        type:'scatter',
+                        coordinateSystem:'calendar',
+                        symbolSize: function(val){ return val[1]/5; },
+                        data: data.map(d=>[d.name,d.value])
+                    }]
+                };
+            }
+
+            switch (currentChartType) {
+                case 'line':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'line',
+                            data: data.map(item => item.value),
+                            smooth: true,
+                            symbol: symbolType,
+                            symbolSize: 8,
+                            lineStyle: {
+                                width: 3,
+                                color: seriesColor
+                            },
+                            itemStyle: {
+                                color: seriesColor
+                            },
+                            areaStyle: {
+                                opacity: 0.1,
+                                color: seriesColor
+                            }
+                        }]
+                    };
+                case 'bar':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'bar',
+                            data: data.map(item => item.value),
+                            barWidth: '60%',
+                            itemStyle: {
+                                color: seriesColor,
+                                borderRadius: [5, 5, 0, 0]
+                            }
+                        }]
+                    };
+                case 'pie':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'pie',
+                            radius: '70%',
+                            data: data,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: theme === 'dark' ? '#333' : '#fff',
+                                borderWidth: 2
+                            },
+                            label: {
+                                show: true,
+                                formatter: '{b}: {d}%',
+                                color: theme === 'dark' ? '#fff' : '#333'
+                            }
+                        }]
+                    };
+                case 'scatter':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'scatter',
+                            data: data.map(item => [item.name, item.value]),
+                            symbol: symbolType,
+                            symbolSize: 10,
+                            itemStyle: {
+                                color: seriesColor
+                            }
+                        }]
+                    };
+                case 'gauge':
+                    if (data.length===0) return {series:[]};
+                    const gData = data[0];
+                    return {
+                        series: [{
+                            type: 'gauge',
+                            min: 0,
+                            max: 100,
+                            progress: {
+                                show: true,
+                                roundCap: true,
+                                width: 18,
+                                itemStyle: { color: seriesColor }
+                            },
+                            pointer: {
+                                show: true,
+                                length: '60%',
+                                width: 8,
+                                itemStyle: { color: seriesColor }
+                            },
+                            axisLine: {
+                                roundCap: true,
+                                lineStyle: {
+                                    width: 18,
+                                    color: [[1, seriesColor]]
+                                }
+                            },
+                            axisTick: {
+                                splitNumber: 5,
+                                distance: 0,
+                                length: 10,
+                                lineStyle: { color: themeColors.text }
+                            },
+                            splitLine: {
+                                length: 15,
+                                distance: 0,
+                                lineStyle: {
+                                    width: 2,
+                                    color: themeColors.text
+                                }
+                            },
+                            anchor: {
+                                show: true,
+                                showAbove: true,
+                                size: 25,
+                                itemStyle: {
+                                    color: seriesColor,
+                                    borderWidth: 10
+                                }
+                            },
+                            detail: {
+                                valueAnimation: true,
+                                fontSize: 30,
+                                offsetCenter: [0, '70%'],
+                                formatter: gaugeShowName ? (value) => `${gData.name}: ${value}%` : '{value}%',
+                                color: themeColors.text
+                            },
+                            data: [{ value: gData.value, name: gData.name }]
+                        }]
+                    };
+                case 'boxplot':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'boxplot',
+                            data: data.map(item => item.value),
+                            itemStyle: {
+                                borderColor: seriesColor
+                            }
+                        }]
+                    };
+                case 'candlestick':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'candlestick',
+                            data: data.map(item => item.value),
+                            itemStyle: {
+                                color: '#c23531',
+                                color0: '#314656',
+                                borderColor: '#c23531',
+                                borderColor0: '#314656'
+                            }
+                        }]
+                    };
+                case 'heatmap':
+                    if (data.length===0) return {series:[]};
+                    let xVals = [];
+                    let yVals = [];
+                    data.forEach(d=>{
+                        let x = d.value[0]; let y = d.value[1];
+                        if(!xVals.includes(x)) xVals.push(x);
+                        if(!yVals.includes(y)) yVals.push(y);
+                    });
+                    return {
+                        xAxis:{type:'category', data:xVals, axisLabel:{color:themeColors.text}, axisLine:{lineStyle:{color:themeColors.axisLine}}, splitLine:{lineStyle:{color:themeColors.splitLine}}},
+                        yAxis:{type:'category', data:yVals, axisLabel:{color:themeColors.text}, axisLine:{lineStyle:{color:themeColors.axisLine}}, splitLine:{lineStyle:{color:themeColors.splitLine}}},
+                        series: [{
+                            type: 'heatmap',
+                            data: data.map(d => [d.value[0], d.value[1], d.value[2]]),
+                            label: {
+                                show: true,
+                                color: themeColors.text
+                            },
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowColor: 'rgba(0,0,0,0.5)'
+                                }
+                            }
+                        }],
+                        visualMap: {
+                            min: Math.min(...data.map(d=>d.value[2]))||0,
+                            max: Math.max(...data.map(d=>d.value[2]))||100,
+                            calculable: true,
+                            inRange: {
+                                color: [heatmapMinColor, heatmapMaxColor]
+                            },
+                            textStyle: {
+                                color: themeColors.text
+                            }
+                        }
+                    };
+                case 'radar':
+                    if (data.length===0) return {series:[]};
+                    const maxVal = Math.max(...data.map(d=>d.value))||100;
+                    return {
+                        radar: {
+                            indicator: data.map(d=>({ name:d.name, max:Math.ceil(maxVal) })),
+                            axisName: {
+                                color: themeColors.text
+                            },
+                            splitLine: {
+                                lineStyle: {
+                                    color: themeColors.splitLine
+                                }
+                            },
+                            axisLine: {
+                                lineStyle: {
+                                    color: themeColors.axisLine
+                                }
+                            }
+                        },
+                        series: [{
+                            type: 'radar',
+                            data: [{
+                                value: data.map(d=>d.value),
+                                name: 'Radar',
+                                areaStyle: radarFillArea ? { opacity:0.3, color: seriesColor } : undefined,
+                                lineStyle: { color: seriesColor },
+                                itemStyle: { color: seriesColor }
+                            }]
+                        }]
+                    };
+                case 'sunburst':
+                    if (data.length===0) return {series:[]};
+                    const sunburstData = buildSunburstData(data);
+                    return {
+                        series: [{
+                            type: 'sunburst',
+                            radius: [0, '90%'],
+                            data: sunburstData,
+                            sort: null,
+                            label: {
+                                rotate: 'radial',
+                                color: themeColors.text
+                            }
+                        }]
+                    };
+                case 'treemap':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'treemap',
+                            data: data.map(d => ({
+                                name: d.name,
+                                value: d.value,
+                                itemStyle: {
+                                    color: seriesColor
+                                }
+                            })),
+                            breadcrumb: { show: false },
+                            label: {
+                                show: true,
+                                color: themeColors.text,
+                                formatter: '{b}:{c}'
+                            }
+                        }]
+                    };
+                case 'sankey':
+                    if (data.length===0) return {series:[]};
+                    const sankeyData = buildSankeyData(data);
+                    return {
+                        series: [{
+                            type: 'sankey',
+                            data: sankeyData.nodes,
+                            links: sankeyData.links,
+                            emphasis: {
+                                focus: 'adjacency'
+                            },
+                            lineStyle: {
+                                color: 'gradient',
+                                curveness: 0.5
+                            },
+                            itemStyle: {
+                                borderWidth: 1,
+                                borderColor: themeColors.text
+                            },
+                            label: {
+                                color: themeColors.text
+                            }
+                        }]
+                    };
+                case 'funnel':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: 'funnel',
+                            data: data.map(d=>({
+                                name:d.name,
+                                value:d.value
+                            })),
+                            label: {
+                                position: 'inside',
+                                formatter: '{b}: {c}',
+                                color: themeColors.text
+                            },
+                            sort: 'descending',
+                            gap: 2,
+                            itemStyle: {
+                                opacity:0.8,
+                                borderColor: theme==='dark'?'#333':'#fff',
+                                borderWidth:2,
+                                color: seriesColor
+                            }
+                        }]
+                    };
+                case 'graph':
+                    if (data.length===0) return {series:[]};
+                    const graphData = buildGraphData(data);
+                    return {
+                        tooltip:{trigger:'item', backgroundColor:themeColors.tooltip.background, textStyle:{color:themeColors.tooltip.text}},
+                        series: [{
+                            type: 'graph',
+                            layout: 'force',
+                            roam: true,
+                            data: graphData.nodes,
+                            links: graphData.links,
+                            lineStyle: {
+                                opacity: 0.9,
+                                width: 2
+                            },
+                            label: {
+                                show: true,
+                                position: 'right',
+                                color: themeColors.text
+                            },
+                            force: {
+                                repulsion: 100
+                            },
+                            itemStyle:{
+                                color: seriesColor
+                            }
+                        }]
+                    };
+                case 'parallel':
+                    if (data.length===0) return {};
+                    const dims = data[0].value.length;
+                    const parallelAxis = [];
+                    for (let i=0; i<dims; i++){
+                        parallelAxis.push({
+                            dim:i,
+                            type:'value',
+                            axisLine: { lineStyle:{color:themeColors.axisLine} },
+                            axisLabel:{ color:themeColors.text },
+                            splitLine:{ lineStyle:{color:themeColors.splitLine} }
+                        });
+                    }
+                    return {
+                        parallelAxis: parallelAxis,
+                        parallel: {
+                            left: '5%',
+                            right: '13%',
+                            bottom: '10%',
+                            top: '20%',
+                            parallelAxisDefault: {
+                                axisLine: { lineStyle: { color: themeColors.axisLine } },
+                                axisLabel: { color: themeColors.text },
+                                splitLine: { lineStyle: { color: themeColors.splitLine } }
+                            }
+                        },
+                        series: [{
+                            type: 'parallel',
+                            data: data.map(d => d.value)
+                        }]
+                    };
+                case 'polarBar':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        polar:{},
+                        angleAxis: {
+                            type:'category',
+                            data:data.map(d=>d.name),
+                            axisLine:{lineStyle:{color:themeColors.axisLine}},
+                            axisLabel:{color:themeColors.text}
+                        },
+                        radiusAxis:{
+                            axisLine:{lineStyle:{color:themeColors.axisLine}},
+                            axisLabel:{color:themeColors.text},
+                            splitLine:{lineStyle:{color:themeColors.splitLine}}
+                        },
+                        series: [{
+                            type: 'bar',
+                            coordinateSystem: 'polar',
+                            data: data.map(d=>d.value),
+                            itemStyle:{
+                                color: seriesColor
+                            }
+                        }]
+                    };
+                case 'effectScatter':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        toolbox:{ feature:{ saveAsImage:{} } },
+                        geo:{
+                            map:'world',
+                            roam:true,
+                            label:{show:false},
+                            itemStyle:{
+                                areaColor:theme==='dark'?'#555':'#eee',
+                                borderColor:'#999'
+                            }
+                        },
+                        visualMap: {
+                            min:0, max:Math.max(...data.map(d=>d.value[2]))||100, left:'left', top:'bottom',
+                            text:['Alto','Baixo'], calculable:true,
+                            textStyle:{color:themeColors.text}
+                        },
+                        series: [{
+                            name:'Pontos',
+                            type:'effectScatter',
+                            coordinateSystem:'geo',
+                            symbolSize: function(val){return val[2]/5;},
+                            rippleEffect:{brushType:'stroke'},
+                            itemStyle:{color:seriesColor},
+                            emphasis: { scale:true },
+                            data:data.map(d=>({name:d.name,value:[d.value[0],d.value[1],d.value[2]]}))
+                        }]
+                    };
+                case 'tree':
+                    if (data.length===0) return {series:[]};
+                    return {
+                        toolbox:{ feature:{ saveAsImage:{} } },
+                        legend:{ data:['Tree'], top:'5%', textStyle:{color:themeColors.text} },
+                        tooltip:{ trigger:'item', triggerOn:'mousemove', backgroundColor:themeColors.tooltip.background, textStyle:{color:themeColors.tooltip.text} },
+                        series:[{
+                            type:'tree',
+                            name:'Tree',
+                            data:[data[0]],
+                            top:'10%', left:'20%', bottom:'10%', right:'20%',
+                            symbol:'circle', symbolSize:20,
+                            orient:'vertical',
+                            label:{ position:'left', verticalAlign:'middle', align:'right', fontSize:10, color:themeColors.text },
+                            leaves:{ label:{ position:'right', align:'left', color:themeColors.text } }
+                        }]
+                    };
+                case 'lines':
+                    if (data.length===0) return {};
+                    // Multiple lines on x-y axis
+                    // We'll assume same categories and plot them
+                    // Find max length
+                    const maxLen = Math.max(...data.map(d=>d.value.length));
+                    const categories = Array.from({length:maxLen},(_,i)=>'P'+(i+1));
+                    const lineSeries = data.map((d,i)=>({
+                        name:d.name,
+                        type:'line',
+                        data:d.value,
+                        itemStyle:{color: i===0? seriesColor:'#c23531'},
+                        markPoint:{ data:[{type:'max'},{type:'min'}] }
+                    }));
+                    return {
+                        toolbox:{ feature:{ saveAsImage:{} } },
+                        legend:{
+                            data:data.map(d=>d.name),
+                            textStyle:{color:themeColors.text}
+                        },
+                        xAxis:{
+                            type:'category', 
+                            data:categories,
+                            axisLine:{lineStyle:{color:themeColors.axisLine}},
+                            axisLabel:{color:themeColors.text},
+                            splitLine:{lineStyle:{color:themeColors.splitLine}}
+                        },
+                        yAxis:{
+                            type:'value',
+                            axisLine:{lineStyle:{color:themeColors.axisLine}},
+                            axisLabel:{color:themeColors.text},
+                            splitLine:{lineStyle:{color:themeColors.splitLine}}
+                        },
+                        series: lineSeries
+                    };
+                case 'themeRiver':
+                    if (data.length===0) return {};
+                    let themeRiverData = [];
+                    data.forEach(cat=>{
+                        cat.value.forEach(arr=>{
+                            themeRiverData.push(arr);
+                        });
+                    });
+                    return {
+                        toolbox:{ feature:{ saveAsImage:{} } },
+                        tooltip:{ trigger:'axis', backgroundColor:themeColors.tooltip.background, textStyle:{color:themeColors.tooltip.text} },
+                        singleAxis: {
+                            type:'time',
+                            axisTick:{alignWithLabel:true},
+                            axisLabel:{ rotate:45, color:themeColors.text },
+                            axisLine:{lineStyle:{color:themeColors.axisLine}},
+                            splitLine:{lineStyle:{color:themeColors.splitLine}}
+                        },
+                        series:[{
+                            type:'themeRiver',
+                            label:{ show:false },
+                            itemStyle:{ emphasis:{ shadowBlur:5 } },
+                            data:themeRiverData
+                        }]
+                    };
+                case 'pictorialBar':
+                    if (data.length===0) return {series:[]};
+                    // Use a simple x-y axis rather than polar to avoid errors:
+                    return {
+                        toolbox:{ feature:{ saveAsImage:{} } },
+                        tooltip:{ backgroundColor:themeColors.tooltip.background, textStyle:{color:themeColors.tooltip.text} },
+                        xAxis:{
+                            type:'category',
+                            data:data.map(d=>d.name),
+                            axisLine:{lineStyle:{color:themeColors.axisLine}},
+                            axisLabel:{color:themeColors.text},
+                            splitLine:{lineStyle:{color:themeColors.splitLine}}
+                        },
+                        yAxis:{
+                            type:'value',
+                            axisLine:{lineStyle:{color:themeColors.axisLine}},
+                            axisLabel:{color:themeColors.text},
+                            splitLine:{lineStyle:{color:themeColors.splitLine}}
+                        },
+                        series:[{
+                            type:'pictorialBar',
+                            symbol:'path://M0,10 L10,10 L5,0 Z',
+                            data:data.map(d=>({value:d.value,itemStyle:{color:seriesColor}})),
+                            symbolSize:[30,20],
+                            symbolPosition:'end',
+                            z:10
+                        }]
+                    };
+                default:
+                    if (data.length===0) return {series:[]};
+                    return {
+                        series: [{
+                            type: currentChartType,
+                            data: data.map(item => item.value)
+                        }]
+                    };
+            }
+        }
+
+        function updateCodePreview(option) {
+            const codePreview = document.getElementById('codePreview');
+            if (codePreview) {
+                const formattedCode = JSON.stringify(option, null, 2);
+                codePreview.innerHTML = `<pre class="language-json"><code>${formattedCode}</code></pre>`;
+            }
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codePreview').textContent;
+            navigator.clipboard.writeText(code);
+            alert(currentLanguage === 'pt-BR' ? 'Código copiado!' : 'Code copied!');
+        }
+
+        function exportForGrafana() {
+            const option = chart.getOption();
+            const grafanaCode = `
+// Código para Painel ECharts do Grafana
+function (data, theme, echartsInstance, echarts) {
+    const option = ${JSON.stringify(option, null, 2)};
+    return option;
+}`;
+            navigator.clipboard.writeText(grafanaCode);
+            alert(currentLanguage === 'pt-BR' ? 'Código do Grafana copiado!' : 'Grafana code copied!');
+        }
+
+        function showChartError(error, container) {
+            if (!container) return;
+            container.innerHTML = `
+                <div class="error-message">
+                    ${error instanceof Error ? error.message : error.toString()}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
